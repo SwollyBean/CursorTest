@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Grocery Calculator</title>
+	<link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+	<header class="app-header">
+		<h1>Grocery Calculator</h1>
+		<div class="totals">
+			<label>Tax Rate (%)
+				<input id="taxRate" type="number" min="0" step="0.01" value="0" />
+			</label>
+			<div class="summary">
+				<div><span>Items:</span><strong id="summaryItems">0</strong></div>
+				<div><span>Subtotal:</span><strong id="summarySubtotal">$0.00</strong></div>
+				<div><span>Tax:</span><strong id="summaryTax">$0.00</strong></div>
+				<div class="grand"><span>Total:</span><strong id="summaryTotal">$0.00</strong></div>
+			</div>
+		</div>
+	</header>
+
+	<main class="container">
+		<section class="card">
+			<h2>Add Item</h2>
+			<form id="itemForm" autocomplete="off">
+				<div class="grid">
+					<label>Name
+						<input id="name" required placeholder="Bananas" />
+					</label>
+					<label>Qty
+						<input id="quantity" type="number" inputmode="decimal" min="0" step="0.01" value="1" />
+					</label>
+					<label>Price each ($)
+						<input id="price" type="number" inputmode="decimal" min="0" step="0.01" value="0" />
+					</label>
+					<label>Discount (%)
+						<input id="discountPct" type="number" inputmode="decimal" min="0" max="100" step="0.01" value="0" />
+					</label>
+					<label>Size (optional)
+						<input id="size" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 500" />
+					</label>
+					<label>Unit
+						<input id="unit" placeholder="g, ml, oz, ct" />
+					</label>
+				</div>
+				<div class="actions">
+					<button id="addBtn" type="submit">Add Item</button>
+					<button id="resetBtn" type="button">Reset</button>
+				</div>
+			</form>
+		</section>
+
+		<section class="card">
+			<h2>List</h2>
+			<div class="table-wrap">
+				<table class="items">
+					<thead>
+						<tr>
+							<th>Name</th>
+							<th class="num">Qty</th>
+							<th class="num">Price</th>
+							<th class="num">Disc%</th>
+							<th class="num">Unit Price</th>
+							<th class="num">Line Total</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody id="itemsBody"></tbody>
+				</table>
+			</div>
+			<div class="toolbar">
+				<button id="clearAllBtn" type="button">Clear All</button>
+				<button id="shareBtn" type="button">Share</button>
+				<button id="importBtn" type="button">Import</button>
+				<button id="printBtn" type="button">Print</button>
+			</div>
+		</section>
+	</main>
+
+	<footer class="footer">
+		<div>Saved locally. Works offline.</div>
+		<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noreferrer">MIT</a>
+	</footer>
+
+	<script src="assets/app.js"></script>
+</body>
+</html>

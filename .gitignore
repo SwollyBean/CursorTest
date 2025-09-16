@@ -1,0 +1,22 @@
+# Logs
+*.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node tooling (none used, but future-proof)
+node_modules/
+
+# Build artifacts
+dist/
+build/
+
+# Editor
+.vscode/
+.idea/
+
+# Env
+.env
+.env.*
