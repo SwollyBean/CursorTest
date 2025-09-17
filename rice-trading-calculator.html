@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rice Trading Exposure Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .exposure-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .summary-card .value {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .summary-card.positive { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .summary-card.negative { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); }
+        .summary-card.neutral { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        .section h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group select {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .number {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .positive { color: #38a169; }
+        .negative { color: #e53e3e; }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .position-type {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .position-type.long {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .position-type.short {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-badge.active {
+            background: #bee3f8;
+            color: #2a69ac;
+        }
+
+        .status-badge.completed {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-badge.pending {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .exposure-summary {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌾 Rice Trading Exposure Calculator</h1>
+            <div class="exposure-summary">
+                <div class="summary-card neutral">
+                    <h3>Total Net Exposure</h3>
+                    <div class="value" id="totalExposure">0 MT</div>
+                </div>
+                <div class="summary-card neutral">
+                    <h3>Futures P&L</h3>
+                    <div class="value" id="futuresPnL">$0</div>
+                </div>
+                <div class="summary-card neutral">
+                    <h3>Inventory Value</h3>
+                    <div class="value" id="inventoryValue">$0</div>
+                </div>
+                <div class="summary-card neutral">
+                    <h3>Net AR/AP</h3>
+                    <div class="value" id="netARAP">$0</div>
+                </div>
+                <div class="summary-card neutral">
+                    <h3>Total Exposure Value</h3>
+                    <div class="value" id="totalValue">$0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Futures Trading Section -->
+        <div class="section">
+            <h2>📈 Futures Trading Positions</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Position Type</label>
+                    <select id="futuresPositionType">
+                        <option value="long">Long (Buy)</option>
+                        <option value="short">Short (Sell)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Contract Month</label>
+                    <input type="month" id="futuresContractMonth">
+                </div>
+                <div class="form-group">
+                    <label>Quantity (MT)</label>
+                    <input type="number" id="futuresQuantity" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Entry Price ($/MT)</label>
+                    <input type="number" id="futuresEntryPrice" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Current Price ($/MT)</label>
+                    <input type="number" id="futuresCurrentPrice" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Exchange</label>
+                    <select id="futuresExchange">
+                        <option value="CBOT">CBOT</option>
+                        <option value="ICE">ICE</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn" onclick="addFuturesPosition()">Add Position</button>
+                <button class="btn btn-danger" onclick="clearFuturesPositions()">Clear All</button>
+            </div>
+            <div class="table-container">
+                <table id="futuresTable">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Contract</th>
+                            <th>Quantity (MT)</th>
+                            <th>Entry Price</th>
+                            <th>Current Price</th>
+                            <th>P&L</th>
+                            <th>Exchange</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="futuresTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Physical Inventory Section -->
+        <div class="section">
+            <h2>📦 Physical Inventory</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Rice Type</label>
+                    <select id="inventoryRiceType">
+                        <option value="Long Grain">Long Grain</option>
+                        <option value="Medium Grain">Medium Grain</option>
+                        <option value="Short Grain">Short Grain</option>
+                        <option value="Basmati">Basmati</option>
+                        <option value="Jasmine">Jasmine</option>
+                        <option value="Brown Rice">Brown Rice</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Quantity (MT)</label>
+                    <input type="number" id="inventoryQuantity" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Cost Basis ($/MT)</label>
+                    <input type="number" id="inventoryCostBasis" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Current Market Price ($/MT)</label>
+                    <input type="number" id="inventoryMarketPrice" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="inventoryLocation" placeholder="Warehouse, Port, etc.">
+                </div>
+                <div class="form-group">
+                    <label>Purchase Date</label>
+                    <input type="date" id="inventoryPurchaseDate">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn" onclick="addInventoryItem()">Add Inventory</button>
+                <button class="btn btn-danger" onclick="clearInventory()">Clear All</button>
+            </div>
+            <div class="table-container">
+                <table id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>Rice Type</th>
+                            <th>Quantity (MT)</th>
+                            <th>Cost Basis</th>
+                            <th>Market Price</th>
+                            <th>Unrealized P&L</th>
+                            <th>Location</th>
+                            <th>Purchase Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sales Contracts Section -->
+        <div class="section">
+            <h2>📋 Sales Contracts</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Customer</label>
+                    <input type="text" id="salesCustomer" placeholder="Customer name">
+                </div>
+                <div class="form-group">
+                    <label>Rice Type</label>
+                    <select id="salesRiceType">
+                        <option value="Long Grain">Long Grain</option>
+                        <option value="Medium Grain">Medium Grain</option>
+                        <option value="Short Grain">Short Grain</option>
+                        <option value="Basmati">Basmati</option>
+                        <option value="Jasmine">Jasmine</option>
+                        <option value="Brown Rice">Brown Rice</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Quantity (MT)</label>
+                    <input type="number" id="salesQuantity" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Contract Price ($/MT)</label>
+                    <input type="number" id="salesContractPrice" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Date</label>
+                    <input type="date" id="salesDeliveryDate">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="salesStatus">
+                        <option value="active">Active</option>
+                        <option value="completed">Completed</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn" onclick="addSalesContract()">Add Sales Contract</button>
+                <button class="btn btn-danger" onclick="clearSalesContracts()">Clear All</button>
+            </div>
+            <div class="table-container">
+                <table id="salesTable">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Rice Type</th>
+                            <th>Quantity (MT)</th>
+                            <th>Contract Price</th>
+                            <th>Total Value</th>
+                            <th>Delivery Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Purchase Contracts Section -->
+        <div class="section">
+            <h2>🛒 Purchase Contracts</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Supplier</label>
+                    <input type="text" id="purchaseSupplier" placeholder="Supplier name">
+                </div>
+                <div class="form-group">
+                    <label>Rice Type</label>
+                    <select id="purchaseRiceType">
+                        <option value="Long Grain">Long Grain</option>
+                        <option value="Medium Grain">Medium Grain</option>
+                        <option value="Short Grain">Short Grain</option>
+                        <option value="Basmati">Basmati</option>
+                        <option value="Jasmine">Jasmine</option>
+                        <option value="Brown Rice">Brown Rice</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Quantity (MT)</label>
+                    <input type="number" id="purchaseQuantity" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Contract Price ($/MT)</label>
+                    <input type="number" id="purchaseContractPrice" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Date</label>
+                    <input type="date" id="purchaseDeliveryDate">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="purchaseStatus">
+                        <option value="active">Active</option>
+                        <option value="completed">Completed</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn" onclick="addPurchaseContract()">Add Purchase Contract</button>
+                <button class="btn btn-danger" onclick="clearPurchaseContracts()">Clear All</button>
+            </div>
+            <div class="table-container">
+                <table id="purchaseTable">
+                    <thead>
+                        <tr>
+                            <th>Supplier</th>
+                            <th>Rice Type</th>
+                            <th>Quantity (MT)</th>
+                            <th>Contract Price</th>
+                            <th>Total Value</th>
+                            <th>Delivery Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchaseTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- AR/AP Section -->
+        <div class="section">
+            <h2>💰 Accounts Receivable & Payable</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="arapType">
+                        <option value="receivable">Accounts Receivable</option>
+                        <option value="payable">Accounts Payable</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Counterparty</label>
+                    <input type="text" id="arapCounterparty" placeholder="Customer/Supplier name">
+                </div>
+                <div class="form-group">
+                    <label>Amount ($)</label>
+                    <input type="number" id="arapAmount" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" id="arapDueDate">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="arapDescription" placeholder="Invoice/Contract reference">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="arapStatus">
+                        <option value="outstanding">Outstanding</option>
+                        <option value="paid">Paid</option>
+                        <option value="overdue">Overdue</option>
+                    </select>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn" onclick="addARAP()">Add Entry</button>
+                <button class="btn btn-danger" onclick="clearARAP()">Clear All</button>
+            </div>
+            <div class="table-container">
+                <table id="arapTable">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Counterparty</th>
+                            <th>Amount</th>
+                            <th>Due Date</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arapTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data storage
+        let futuresPositions = [];
+        let inventory = [];
+        let salesContracts = [];
+        let purchaseContracts = [];
+        let arapEntries = [];
+
+        // Initialize with current date
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('futuresContractMonth').value = today.substring(0, 7);
+            document.getElementById('inventoryPurchaseDate').value = today;
+            document.getElementById('salesDeliveryDate').value = today;
+            document.getElementById('purchaseDeliveryDate').value = today;
+            document.getElementById('arapDueDate').value = today;
+            
+            loadData();
+            updateSummary();
+        });
+
+        // Futures Trading Functions
+        function addFuturesPosition() {
+            const positionType = document.getElementById('futuresPositionType').value;
+            const contractMonth = document.getElementById('futuresContractMonth').value;
+            const quantity = parseFloat(document.getElementById('futuresQuantity').value);
+            const entryPrice = parseFloat(document.getElementById('futuresEntryPrice').value);
+            const currentPrice = parseFloat(document.getElementById('futuresCurrentPrice').value);
+            const exchange = document.getElementById('futuresExchange').value;
+
+            if (!quantity || !entryPrice || !currentPrice) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const pnl = positionType === 'long' 
+                ? (currentPrice - entryPrice) * quantity
+                : (entryPrice - currentPrice) * quantity;
+
+            const position = {
+                id: Date.now(),
+                type: positionType,
+                contractMonth,
+                quantity,
+                entryPrice,
+                currentPrice,
+                pnl,
+                exchange
+            };
+
+            futuresPositions.push(position);
+            updateFuturesTable();
+            updateSummary();
+            saveData();
+            clearFuturesForm();
+        }
+
+        function updateFuturesTable() {
+            const tbody = document.getElementById('futuresTableBody');
+            tbody.innerHTML = '';
+
+            futuresPositions.forEach(position => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><span class="position-type ${position.type}">${position.type.toUpperCase()}</span></td>
+                    <td>${position.contractMonth}</td>
+                    <td class="number">${position.quantity.toFixed(2)}</td>
+                    <td class="number">$${position.entryPrice.toFixed(2)}</td>
+                    <td class="number">$${position.currentPrice.toFixed(2)}</td>
+                    <td class="number ${position.pnl >= 0 ? 'positive' : 'negative'}">$${position.pnl.toFixed(2)}</td>
+                    <td>${position.exchange}</td>
+                    <td><button class="btn btn-danger" onclick="removeFuturesPosition(${position.id})">Remove</button></td>
+                `;
+            });
+        }
+
+        function removeFuturesPosition(id) {
+            futuresPositions = futuresPositions.filter(p => p.id !== id);
+            updateFuturesTable();
+            updateSummary();
+            saveData();
+        }
+
+        function clearFuturesPositions() {
+            if (confirm('Are you sure you want to clear all futures positions?')) {
+                futuresPositions = [];
+                updateFuturesTable();
+                updateSummary();
+                saveData();
+            }
+        }
+
+        function clearFuturesForm() {
+            document.getElementById('futuresQuantity').value = '';
+            document.getElementById('futuresEntryPrice').value = '';
+            document.getElementById('futuresCurrentPrice').value = '';
+        }
+
+        // Inventory Functions
+        function addInventoryItem() {
+            const riceType = document.getElementById('inventoryRiceType').value;
+            const quantity = parseFloat(document.getElementById('inventoryQuantity').value);
+            const costBasis = parseFloat(document.getElementById('inventoryCostBasis').value);
+            const marketPrice = parseFloat(document.getElementById('inventoryMarketPrice').value);
+            const location = document.getElementById('inventoryLocation').value;
+            const purchaseDate = document.getElementById('inventoryPurchaseDate').value;
+
+            if (!quantity || !costBasis || !marketPrice) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const unrealizedPnl = (marketPrice - costBasis) * quantity;
+
+            const item = {
+                id: Date.now(),
+                riceType,
+                quantity,
+                costBasis,
+                marketPrice,
+                unrealizedPnl,
+                location,
+                purchaseDate
+            };
+
+            inventory.push(item);
+            updateInventoryTable();
+            updateSummary();
+            saveData();
+            clearInventoryForm();
+        }
+
+        function updateInventoryTable() {
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = '';
+
+            inventory.forEach(item => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${item.riceType}</td>
+                    <td class="number">${item.quantity.toFixed(2)}</td>
+                    <td class="number">$${item.costBasis.toFixed(2)}</td>
+                    <td class="number">$${item.marketPrice.toFixed(2)}</td>
+                    <td class="number ${item.unrealizedPnl >= 0 ? 'positive' : 'negative'}">$${item.unrealizedPnl.toFixed(2)}</td>
+                    <td>${item.location}</td>
+                    <td>${item.purchaseDate}</td>
+                    <td><button class="btn btn-danger" onclick="removeInventoryItem(${item.id})">Remove</button></td>
+                `;
+            });
+        }
+
+        function removeInventoryItem(id) {
+            inventory = inventory.filter(item => item.id !== id);
+            updateInventoryTable();
+            updateSummary();
+            saveData();
+        }
+
+        function clearInventory() {
+            if (confirm('Are you sure you want to clear all inventory?')) {
+                inventory = [];
+                updateInventoryTable();
+                updateSummary();
+                saveData();
+            }
+        }
+
+        function clearInventoryForm() {
+            document.getElementById('inventoryQuantity').value = '';
+            document.getElementById('inventoryCostBasis').value = '';
+            document.getElementById('inventoryMarketPrice').value = '';
+            document.getElementById('inventoryLocation').value = '';
+        }
+
+        // Sales Contracts Functions
+        function addSalesContract() {
+            const customer = document.getElementById('salesCustomer').value;
+            const riceType = document.getElementById('salesRiceType').value;
+            const quantity = parseFloat(document.getElementById('salesQuantity').value);
+            const contractPrice = parseFloat(document.getElementById('salesContractPrice').value);
+            const deliveryDate = document.getElementById('salesDeliveryDate').value;
+            const status = document.getElementById('salesStatus').value;
+
+            if (!customer || !quantity || !contractPrice || !deliveryDate) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const totalValue = quantity * contractPrice;
+
+            const contract = {
+                id: Date.now(),
+                customer,
+                riceType,
+                quantity,
+                contractPrice,
+                totalValue,
+                deliveryDate,
+                status
+            };
+
+            salesContracts.push(contract);
+            updateSalesTable();
+            updateSummary();
+            saveData();
+            clearSalesForm();
+        }
+
+        function updateSalesTable() {
+            const tbody = document.getElementById('salesTableBody');
+            tbody.innerHTML = '';
+
+            salesContracts.forEach(contract => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${contract.customer}</td>
+                    <td>${contract.riceType}</td>
+                    <td class="number">${contract.quantity.toFixed(2)}</td>
+                    <td class="number">$${contract.contractPrice.toFixed(2)}</td>
+                    <td class="number">$${contract.totalValue.toFixed(2)}</td>
+                    <td>${contract.deliveryDate}</td>
+                    <td><span class="status-badge ${contract.status}">${contract.status.toUpperCase()}</span></td>
+                    <td><button class="btn btn-danger" onclick="removeSalesContract(${contract.id})">Remove</button></td>
+                `;
+            });
+        }
+
+        function removeSalesContract(id) {
+            salesContracts = salesContracts.filter(c => c.id !== id);
+            updateSalesTable();
+            updateSummary();
+            saveData();
+        }
+
+        function clearSalesContracts() {
+            if (confirm('Are you sure you want to clear all sales contracts?')) {
+                salesContracts = [];
+                updateSalesTable();
+                updateSummary();
+                saveData();
+            }
+        }
+
+        function clearSalesForm() {
+            document.getElementById('salesCustomer').value = '';
+            document.getElementById('salesQuantity').value = '';
+            document.getElementById('salesContractPrice').value = '';
+        }
+
+        // Purchase Contracts Functions
+        function addPurchaseContract() {
+            const supplier = document.getElementById('purchaseSupplier').value;
+            const riceType = document.getElementById('purchaseRiceType').value;
+            const quantity = parseFloat(document.getElementById('purchaseQuantity').value);
+            const contractPrice = parseFloat(document.getElementById('purchaseContractPrice').value);
+            const deliveryDate = document.getElementById('purchaseDeliveryDate').value;
+            const status = document.getElementById('purchaseStatus').value;
+
+            if (!supplier || !quantity || !contractPrice || !deliveryDate) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const totalValue = quantity * contractPrice;
+
+            const contract = {
+                id: Date.now(),
+                supplier,
+                riceType,
+                quantity,
+                contractPrice,
+                totalValue,
+                deliveryDate,
+                status
+            };
+
+            purchaseContracts.push(contract);
+            updatePurchaseTable();
+            updateSummary();
+            saveData();
+            clearPurchaseForm();
+        }
+
+        function updatePurchaseTable() {
+            const tbody = document.getElementById('purchaseTableBody');
+            tbody.innerHTML = '';
+
+            purchaseContracts.forEach(contract => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${contract.supplier}</td>
+                    <td>${contract.riceType}</td>
+                    <td class="number">${contract.quantity.toFixed(2)}</td>
+                    <td class="number">$${contract.contractPrice.toFixed(2)}</td>
+                    <td class="number">$${contract.totalValue.toFixed(2)}</td>
+                    <td>${contract.deliveryDate}</td>
+                    <td><span class="status-badge ${contract.status}">${contract.status.toUpperCase()}</span></td>
+                    <td><button class="btn btn-danger" onclick="removePurchaseContract(${contract.id})">Remove</button></td>
+                `;
+            });
+        }
+
+        function removePurchaseContract(id) {
+            purchaseContracts = purchaseContracts.filter(c => c.id !== id);
+            updatePurchaseTable();
+            updateSummary();
+            saveData();
+        }
+
+        function clearPurchaseContracts() {
+            if (confirm('Are you sure you want to clear all purchase contracts?')) {
+                purchaseContracts = [];
+                updatePurchaseTable();
+                updateSummary();
+                saveData();
+            }
+        }
+
+        function clearPurchaseForm() {
+            document.getElementById('purchaseSupplier').value = '';
+            document.getElementById('purchaseQuantity').value = '';
+            document.getElementById('purchaseContractPrice').value = '';
+        }
+
+        // AR/AP Functions
+        function addARAP() {
+            const type = document.getElementById('arapType').value;
+            const counterparty = document.getElementById('arapCounterparty').value;
+            const amount = parseFloat(document.getElementById('arapAmount').value);
+            const dueDate = document.getElementById('arapDueDate').value;
+            const description = document.getElementById('arapDescription').value;
+            const status = document.getElementById('arapStatus').value;
+
+            if (!counterparty || !amount || !dueDate) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const entry = {
+                id: Date.now(),
+                type,
+                counterparty,
+                amount,
+                dueDate,
+                description,
+                status
+            };
+
+            arapEntries.push(entry);
+            updateARAPTable();
+            updateSummary();
+            saveData();
+            clearARAPForm();
+        }
+
+        function updateARAPTable() {
+            const tbody = document.getElementById('arapTableBody');
+            tbody.innerHTML = '';
+
+            arapEntries.forEach(entry => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><span class="position-type ${entry.type}">${entry.type.toUpperCase()}</span></td>
+                    <td>${entry.counterparty}</td>
+                    <td class="number ${entry.type === 'receivable' ? 'positive' : 'negative'}">$${entry.amount.toFixed(2)}</td>
+                    <td>${entry.dueDate}</td>
+                    <td>${entry.description}</td>
+                    <td><span class="status-badge ${entry.status}">${entry.status.toUpperCase()}</span></td>
+                    <td><button class="btn btn-danger" onclick="removeARAP(${entry.id})">Remove</button></td>
+                `;
+            });
+        }
+
+        function removeARAP(id) {
+            arapEntries = arapEntries.filter(entry => entry.id !== id);
+            updateARAPTable();
+            updateSummary();
+            saveData();
+        }
+
+        function clearARAP() {
+            if (confirm('Are you sure you want to clear all AR/AP entries?')) {
+                arapEntries = [];
+                updateARAPTable();
+                updateSummary();
+                saveData();
+            }
+        }
+
+        function clearARAPForm() {
+            document.getElementById('arapCounterparty').value = '';
+            document.getElementById('arapAmount').value = '';
+            document.getElementById('arapDescription').value = '';
+        }
+
+        // Summary and Calculations
+        function updateSummary() {
+            // Calculate futures P&L
+            const futuresPnL = futuresPositions.reduce((sum, pos) => sum + pos.pnl, 0);
+            
+            // Calculate inventory value
+            const inventoryValue = inventory.reduce((sum, item) => sum + (item.marketPrice * item.quantity), 0);
+            
+            // Calculate net AR/AP
+            const receivables = arapEntries.filter(entry => entry.type === 'receivable' && entry.status !== 'paid')
+                .reduce((sum, entry) => sum + entry.amount, 0);
+            const payables = arapEntries.filter(entry => entry.type === 'payable' && entry.status !== 'paid')
+                .reduce((sum, entry) => sum + entry.amount, 0);
+            const netARAP = receivables - payables;
+            
+            // Calculate total net exposure (futures + physical inventory)
+            const futuresExposure = futuresPositions.reduce((sum, pos) => {
+                return sum + (pos.type === 'long' ? pos.quantity : -pos.quantity);
+            }, 0);
+            
+            const physicalInventory = inventory.reduce((sum, item) => sum + item.quantity, 0);
+            const salesCommitments = salesContracts.filter(c => c.status === 'active')
+                .reduce((sum, c) => sum + c.quantity, 0);
+            const purchaseCommitments = purchaseContracts.filter(c => c.status === 'active')
+                .reduce((sum, c) => sum + c.quantity, 0);
+            
+            const totalNetExposure = futuresExposure + physicalInventory - salesCommitments + purchaseCommitments;
+            
+            // Calculate total exposure value
+            const totalValue = futuresPnL + inventoryValue + netARAP;
+            
+            // Update display
+            document.getElementById('totalExposure').textContent = `${totalNetExposure.toFixed(2)} MT`;
+            document.getElementById('futuresPnL').textContent = `$${futuresPnL.toFixed(2)}`;
+            document.getElementById('inventoryValue').textContent = `$${inventoryValue.toFixed(2)}`;
+            document.getElementById('netARAP').textContent = `$${netARAP.toFixed(2)}`;
+            document.getElementById('totalValue').textContent = `$${totalValue.toFixed(2)}`;
+            
+            // Update card colors based on values
+            updateCardColor('totalExposure', totalNetExposure);
+            updateCardColor('futuresPnL', futuresPnL);
+            updateCardColor('inventoryValue', inventoryValue);
+            updateCardColor('netARAP', netARAP);
+            updateCardColor('totalValue', totalValue);
+        }
+
+        function updateCardColor(elementId, value) {
+            const card = document.getElementById(elementId).closest('.summary-card');
+            card.className = 'summary-card';
+            
+            if (value > 0) {
+                card.classList.add('positive');
+            } else if (value < 0) {
+                card.classList.add('negative');
+            } else {
+                card.classList.add('neutral');
+            }
+        }
+
+        // Data persistence
+        function saveData() {
+            const data = {
+                futuresPositions,
+                inventory,
+                salesContracts,
+                purchaseContracts,
+                arapEntries
+            };
+            localStorage.setItem('riceTradingData', JSON.stringify(data));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('riceTradingData');
+            if (saved) {
+                const data = JSON.parse(saved);
+                futuresPositions = data.futuresPositions || [];
+                inventory = data.inventory || [];
+                salesContracts = data.salesContracts || [];
+                purchaseContracts = data.purchaseContracts || [];
+                arapEntries = data.arapEntries || [];
+                
+                updateFuturesTable();
+                updateInventoryTable();
+                updateSalesTable();
+                updatePurchaseTable();
+                updateARAPTable();
+            }
+        }
+    </script>
+</body>
+</html>
